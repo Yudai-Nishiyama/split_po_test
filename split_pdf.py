@@ -3,11 +3,11 @@ import csv
 import pdfplumber
 import pytesseract
 import re  # 追加
-from PyPDF2 import PdfReader,PdfWriter
+from PyPDF2 import PdfReader, PdfWriter
 
 # Function to extract and print text from a PDF file
 def extract_and_print_text(pdf_path):
-    extracted_words = []
+    extracted_words_by_page = []
     with pdfplumber.open(pdf_path) as pdf:
         for page_number, page in enumerate(pdf.pages):
             im = page.to_image(resolution=300)  # Enhance resolution
@@ -17,8 +17,8 @@ def extract_and_print_text(pdf_path):
             words_with_pm = re.findall(r'\bPM\w+', text)  # Find all words starting with "PM"
             for word in words_with_pm:
                 print(word)
-            extracted_words.extend(words_with_pm)
-    return extracted_words
+            extracted_words_by_page.append(words_with_pm)
+    return extracted_words_by_page
 
 # Function to split PDF pages based on factory code
 def split_pdf_pages(pdf_path, pages_by_factory):
@@ -26,7 +26,7 @@ def split_pdf_pages(pdf_path, pages_by_factory):
         writer = PdfWriter()
         reader = PdfReader(pdf_path)
 
-        for page_number in page_numbers:
+        for page_number in sorted(set(page_numbers)):  # Ensure unique and sorted page numbers
             writer.add_page(reader.pages[page_number])
 
         output_pdf_path = f"Merged_{factory_code}.pdf"
@@ -61,16 +61,15 @@ if __name__ == "__main__":
         if filename.endswith(".pdf"):
             pdf_path = os.path.join(folder_path, filename)
             print(f"Processing file: {pdf_path}")
-            extracted_words_pdf = extract_and_print_text(pdf_path)
+            extracted_words_by_page = extract_and_print_text(pdf_path)
 
             pages_by_factory = {}
             for shizaihin_code, kanto_factory in csv_data:
-                if shizaihin_code in extracted_words_pdf:
-                    print(f"Match found in PDF: {shizaihin_code}")
-                    for page_num, page in enumerate(extracted_words_pdf):
-                        if shizaihin_code in page:
-                            if kanto_factory not in pages_by_factory:
-                                pages_by_factory[kanto_factory] = []
+                for page_num, words_on_page in enumerate(extracted_words_by_page):
+                    if shizaihin_code in words_on_page:
+                        if kanto_factory not in pages_by_factory:
+                            pages_by_factory[kanto_factory] = []
+                        if page_num not in pages_by_factory[kanto_factory]:
                             pages_by_factory[kanto_factory].append(page_num)
 
             if pages_by_factory:
