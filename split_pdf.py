@@ -11,7 +11,7 @@ def extract_and_print_text(pdf_path):
     with pdfplumber.open(pdf_path) as pdf:
         for page_number, page in enumerate(pdf.pages):
             im = page.to_image(resolution=300)  # Enhance resolution
-            text = pytesseract.image_to_string(im.original, lang='jpn')  # Perform OCR for Japanese text
+            text = pytesseract.image_to_string(im.original, lang='jpn')  # Perform OCR for Japanese text, chage this to any lang
             text = text.replace('O', '0')  # Replace letter 'O' with number '0'
             print(f"--- Page {page_number + 1} of {os.path.basename(pdf_path)} ---")
             words_you_select = re.findall(r'\b\w+', text)  # change the atribute of re.findall() to the words your want to extract from the PDF file
